@@ -1,0 +1,107 @@
+=== Q1 SELECT + WHERE + ORDER BY + LIMIT: top 10 priciest in-stock books rated 4+ ===
+SELECT title, price_gbp, rating
+        FROM books
+        WHERE in_stock = 1 AND rating >= 4
+        ORDER BY price_gbp DESC
+        LIMIT 10
+-- result: title, price_gbp, rating
+("The No. 1 Ladies' Detective Agency (No. 1 Ladies' Detective Agency #1)", 57.7, 4)
+('A Year in Provence (Provence #1)', 56.88, 4)
+('The Past Never Ends', 56.5, 4)
+('A Flight of Arrows (The Pathfinders #2)', 55.53, 5)
+('Murder at the 42nd Street Library (Raymond Ambler #1)', 54.36, 4)
+("The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries #1)", 52.3, 5)
+('Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond', 49.43, 4)
+('A Time of Torment (Charlie Parker #14)', 48.35, 5)
+('Sharp Objects', 47.82, 4)
+('The Murder of Roger Ackroyd (Hercule Poirot #4)', 44.1, 4)
+
+=== Q2 DISTINCT: rating values present in the data ===
+SELECT DISTINCT rating
+        FROM books
+        ORDER BY rating
+-- result: rating
+(1,)
+(2,)
+(3,)
+(4,)
+(5,)
+
+=== Q3 BETWEEN: books priced GBP 20 to 30 ===
+SELECT title, price_gbp
+        FROM books
+        WHERE price_gbp BETWEEN 20 AND 30
+        ORDER BY price_gbp
+        LIMIT 10
+-- result: title, price_gbp
+('Blood Defense (Samantha Brinkman #1)', 20.3)
+('Love, Lies and Spies', 20.55)
+('Between Shades of Gray', 20.79)
+('Delivering the Truth (Quaker Midwife Mystery #1)', 20.89)
+('Voyager (Outlander #3)', 21.07)
+('The Silkworm (Cormoran Strike #2)', 23.05)
+('The Road to Little Dribbling: Adventures of an American in Britain (Notes From a Small Island #2)', 23.21)
+('Career of Evil (Cormoran Strike #3)', 24.72)
+('The Mysterious Affair at Styles (Hercule Poirot #1)', 24.8)
+('What Happened on Beale Street (Secrets of the South Mysteries #2)', 25.37)
+
+=== Q4 IN: 4 or 5 star books in Travel or Mystery ===
+SELECT title, rating, price_inr
+        FROM books
+        WHERE rating IN (4, 5)
+          AND category_id IN (
+              SELECT category_id FROM categories
+              WHERE category_name IN ('Travel', 'Mystery'))
+        ORDER BY rating DESC, title
+        LIMIT 10
+-- result: title, rating, price_inr
+('1,000 Places to See Before You Die', 5, 2751.44)
+('A Time of Torment (Charlie Parker #14)', 5, 5100.92)
+("The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries #1)", 5, 5517.65)
+('The Girl You Lost', 5, 1296.59)
+('The Silkworm (Cormoran Strike #2)', 5, 2431.78)
+('What Happened on Beale Street (Secrets of the South Mysteries #2)', 5, 2676.54)
+('A Year in Provence (Provence #1)', 4, 6000.84)
+('Delivering the Truth (Quaker Midwife Mystery #1)', 4, 2203.9)
+('Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond', 4, 5214.86)
+('Murder at the 42nd Street Library (Raymond Ambler #1)', 4, 5734.98)
+
+=== Q5 JOIN: average price and book count per category ===
+SELECT c.category_name,
+               COUNT(*) AS n_books,
+               ROUND(AVG(b.price_gbp), 2) AS avg_price_gbp
+        FROM books b
+        JOIN categories c ON b.category_id = c.category_id
+        GROUP BY c.category_name
+        ORDER BY avg_price_gbp DESC
+-- result: category_name, n_books, avg_price_gbp
+('Travel', 11, 39.79)
+('Classics', 19, 36.55)
+('Historical Fiction', 26, 33.64)
+('Mystery', 32, 31.72)
+
+=== Q6 JOIN: top 3 highest-rated books per category ===
+SELECT category_name, title, rating
+        FROM (
+            SELECT c.category_name, b.title, b.rating,
+                   ROW_NUMBER() OVER (
+                       PARTITION BY c.category_id
+                       ORDER BY b.rating DESC, b.title) AS rn
+            FROM books b
+            JOIN categories c ON b.category_id = c.category_id
+        )
+        WHERE rn <= 3
+        ORDER BY category_name, rn
+-- result: category_name, title, rating
+('Classics', 'Little Women (Little Women #1)', 4)
+('Classics', 'The Complete Stories and Poems (The Works of Edgar Allan Poe [Cameo Edition])', 4)
+('Classics', 'The Secret Garden', 4)
+('Historical Fiction', 'A Flight of Arrows (The Pathfinders #2)', 5)
+('Historical Fiction', "A Spy's Devotion (The Regency Spies of London #1)", 5)
+('Historical Fiction', 'Between Shades of Gray', 5)
+('Mystery', 'A Time of Torment (Charlie Parker #14)', 5)
+('Mystery', "The Bachelor Girl's Guide to Murder (Herringford and Watts Mysteries #1)", 5)
+('Mystery', 'The Girl You Lost', 5)
+('Travel', '1,000 Places to See Before You Die', 5)
+('Travel', 'A Year in Provence (Provence #1)', 4)
+('Travel', 'Full Moon over Noah’s Ark: An Odyssey to Mount Ararat and Beyond', 4)
