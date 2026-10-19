@@ -3,7 +3,7 @@
 Capstone project with three modules:
 
 - `data_pipeline` - scrape, clean, convert and store book data, then query it (Module 1)
-- `analytics` - in progress
+- `analytics` - Titanic EDA, stratified classification pipeline, tuning, fare regression and a saved joblib pipeline (Module 2, see `analytics/README.md`)
 - `support_assistant` - in progress
 
 ## Setup
@@ -40,3 +40,14 @@ python data_pipeline/compare.py     # read_sql vs pd.merge -> pandas_output.txt
 - **Schema:** `categories(category_id PK, category_name UNIQUE)` and `books(book_id PK, title, price_gbp, price_inr, rating, in_stock, category_id FK -> categories)`.
 - **SQL:** 6 queries covering SELECT/WHERE, ORDER BY, LIMIT, DISTINCT, BETWEEN, IN and JOINs. Results are saved in `sql_output.txt`.
 - **pandas:** `pd.read_sql` results and a `pd.merge` reproduction of the join are in `pandas_output.txt`; the script confirms they are equivalent.
+
+## Module 2: analytics
+
+```
+python analytics/01_eda.py            # load Titanic once, profile, clean, charts
+python analytics/02_modeling.py       # split, 3 classifiers, imbalance, GridSearchCV
+python analytics/03_regression.py     # fare regression + residual analysis
+python analytics/04_save_pipeline.py  # save + reload the full pipeline
+```
+
+Design decisions and all written interpretations are in `analytics/README.md`.

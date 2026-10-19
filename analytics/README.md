@@ -111,3 +111,5 @@ I would deploy the Random Forest. It has the best accuracy (0.8156), recall (0.6
 
 ### Saved pipeline
 `best_pipeline.joblib` holds the complete fitted pipeline (imputers, encoder, scaler and the Random Forest) as one object, saved with `joblib.dump`. `04_save_pipeline.py` regenerates it, reloads it with `joblib.load` and predicts on raw, unpreprocessed rows, including a row with missing age and embarked.
+
+Note: `best_pipeline.joblib` was saved with scikit-learn 1.9.1; reloading it needs the same version (see `requirements.txt`).
