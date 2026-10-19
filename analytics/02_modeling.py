@@ -143,3 +143,38 @@ for name, pipe in variants.items():
 imb_table = pd.DataFrame(imb_rows).round(4)
 imb_table.to_csv("analytics/imbalance_comparison.csv", index=False)
 print(imb_table.to_string(index=False))
+
+# ---- Task 10: GridSearchCV on Random Forest (oob_score=True) ----
+from sklearn.model_selection import GridSearchCV
+
+print()
+print("=== GRIDSEARCHCV: RANDOM FOREST ===")
+rf_pipe = Pipeline([
+    ("prep", make_preprocessor()),
+    ("model", RandomForestClassifier(oob_score=True, random_state=42)),
+])
+param_grid = {
+    "model__n_estimators": [100, 200, 300],
+    "model__max_depth": [3, 5, 7, None],
+    "model__max_features": ["sqrt", "log2", 0.5],
+}
+gs = GridSearchCV(rf_pipe, param_grid, cv=5, scoring="f1", n_jobs=-1)
+gs.fit(X_train, y_train)
+
+best = gs.best_estimator_
+print("best params:", gs.best_params_)
+print("best CV F1:", round(gs.best_score_, 4))
+print("OOB score of best model:", round(best.named_steps["model"].oob_score_, 4))
+
+pred = best.predict(X_test)
+proba = best.predict_proba(X_test)[:, 1]
+tuned = pd.DataFrame([{
+    "model": "Random Forest (tuned)",
+    "accuracy": accuracy_score(y_test, pred),
+    "precision": precision_score(y_test, pred),
+    "recall": recall_score(y_test, pred),
+    "f1": f1_score(y_test, pred),
+    "auc": roc_auc_score(y_test, proba),
+}]).round(4)
+tuned.to_csv("analytics/tuned_rf_metrics.csv", index=False)
+print(tuned.to_string(index=False))

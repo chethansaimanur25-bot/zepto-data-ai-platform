@@ -1,0 +1,2 @@
+model,accuracy,precision,recall,f1,auc
+Random Forest (tuned),0.8045,0.8036,0.6522,0.72,0.8375
