@@ -130,3 +130,71 @@ print()
 print("=== TWO STRONGEST CORRELATIONS (by absolute value) ===")
 for a, b, r in pairs[:2]:
     print(f"{a} vs {b}: r = {r:.3f}")
+
+    # ---- Task 5: multivariate data story (5 charts) ----
+sns.set_theme(style="whitegrid")
+
+def save(name):
+    plt.tight_layout()
+    plt.savefig(f"analytics/charts/{name}.png")
+    plt.close()
+
+# Chart 1: survival by sex
+plt.figure(figsize=(5, 4))
+sns.barplot(data=df_clean, x="sex", y="survived", errorbar=None)
+plt.title("Survival rate by sex")
+save("story1_sex")
+
+# Chart 2: survival by class and sex
+plt.figure(figsize=(6, 4))
+sns.barplot(data=df_clean, x="pclass", y="survived", hue="sex", errorbar=None)
+plt.title("Survival rate by class and sex")
+save("story2_class_sex")
+
+# Chart 3: age by survival outcome
+plt.figure(figsize=(5, 4))
+sns.boxplot(data=df_clean, x="survived", y="age")
+plt.title("Age by survival (0 = died, 1 = survived)")
+save("story3_age")
+
+# Chart 4: fare by class and survival (log scale because fare is right-skewed)
+plt.figure(figsize=(6, 4))
+sns.boxplot(data=df_clean, x="pclass", y="fare", hue="survived")
+plt.yscale("log")
+plt.title("Fare by class and survival (log scale)")
+save("story4_fare_class")
+
+# Chart 5: heatmap of survival by age group and sex
+df_clean["age_group"] = pd.cut(
+    df_clean["age"], bins=[0, 12, 18, 35, 60, 100],
+    labels=["child 0-12", "teen 13-18", "adult 19-35", "middle 36-60", "senior 60+"])
+pivot = df_clean.pivot_table(index="age_group", columns="sex",
+                             values="survived", aggfunc="mean", observed=True)
+plt.figure(figsize=(5, 4))
+sns.heatmap(pivot, annot=True, fmt=".2f", cmap="YlGnBu")
+plt.title("Survival rate by age group and sex")
+save("story5_age_sex_heatmap")
+
+print()
+print("=== STORY SUPPORT NUMBERS ===")
+print("survival by sex:")
+print(df_clean.groupby("sex")["survived"].mean().round(4))
+print("median age by survived:")
+print(df_clean.groupby("survived")["age"].median())
+print("median fare by pclass:")
+print(df_clean.groupby("pclass")["fare"].median())
+print("survival by age group and sex:")
+print(pivot.round(3))
+
+# ---- Task 6: exploratory standardization check ----
+from sklearn.preprocessing import StandardScaler
+
+before = df_clean[["age", "fare"]]
+after = pd.DataFrame(StandardScaler().fit_transform(before),
+                     columns=["age_z", "fare_z"], index=before.index)
+print()
+print("=== STANDARDIZATION CHECK (age, fare) ===")
+print("BEFORE: mean", before.mean().round(3).to_dict(),
+      "std", before.std(ddof=0).round(3).to_dict())
+print("AFTER : mean", after.mean().round(6).to_dict(),
+      "std", after.std(ddof=0).round(6).to_dict())
