@@ -86,3 +86,47 @@ elif f_mean < f_median < f_mode:
     print("fare is LEFT-SKEWED (mean < median < mode)")
 else:
     print("fare is roughly SYMMETRIC")
+
+    # ---- Task 4: bivariate analysis ----
+print()
+print("=== SURVIVAL RATE BY SEX (boolean masking) ===")
+for s in ["female", "male"]:
+    mask = df_clean["sex"] == s
+    print(f"{s}: {df_clean[mask]['survived'].mean():.4f}  (n={int(mask.sum())})")
+
+print()
+print("=== SURVIVAL RATE BY PCLASS ===")
+for p in [1, 2, 3]:
+    mask = df_clean["pclass"] == p
+    print(f"class {p}: {df_clean[mask]['survived'].mean():.4f}  (n={int(mask.sum())})")
+
+print()
+print("=== SURVIVAL RATE BY SEX AND PCLASS ===")
+for s in ["female", "male"]:
+    for p in [1, 2, 3]:
+        mask = (df_clean["sex"] == s) & (df_clean["pclass"] == p)
+        print(f"{s}, class {p}: {df_clean[mask]['survived'].mean():.4f}  (n={int(mask.sum())})")
+
+print()
+print("=== CORRELATION MATRIX (6 columns) ===")
+cols6 = ["survived", "pclass", "age", "sibsp", "parch", "fare"]
+corr = df_clean[cols6].corr()
+print(corr.round(3))
+
+plt.figure(figsize=(7, 6))
+sns.heatmap(corr, annot=True, fmt=".2f", cmap="coolwarm", vmin=-1, vmax=1)
+plt.title("Correlation matrix (6 numeric columns)")
+plt.tight_layout()
+plt.savefig("analytics/charts/corr_heatmap.png")
+plt.close()
+
+pairs = []
+for i, a in enumerate(cols6):
+    for b in cols6[i + 1:]:
+        pairs.append((a, b, corr.loc[a, b]))
+pairs.sort(key=lambda t: abs(t[2]), reverse=True)
+
+print()
+print("=== TWO STRONGEST CORRELATIONS (by absolute value) ===")
+for a, b, r in pairs[:2]:
+    print(f"{a} vs {b}: r = {r:.3f}")
