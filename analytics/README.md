@@ -45,3 +45,69 @@ Overall: sex was the strongest factor, class the second, and age mattered mainly
 |---|---|---|---|---|
 | before | 29.315 | 12.978 | 32.097 | 49.67 |
 | after (z-score) | 0.0 | 1.0 | 0.0 | 1.0 |
+
+## Part B: predictive modelling
+
+Run order: `python analytics/02_modeling.py`, then `03_regression.py`, then `04_save_pipeline.py`. All three read the committed `titanic.csv`; none of them calls `sns.load_dataset` again.
+
+### Design decisions
+- **Target and features:** target `survived`; features pclass, sex, age, sibsp, parch, fare, embarked. I excluded `alive` (it is the target in another form, so using it would leak the answer) and the redundant columns who, adult_male, alone, class, embark_town and deck.
+- **Stratified split (80/20, random_state=42), done before any preprocessing.** Class balance is 61.62% died / 38.38% survived. Stratification keeps that ratio in both splits (train 0.3834, test 0.3855), so test metrics are not distorted by an unlucky split of the minority class.
+- **Preprocessing inside a Pipeline/ColumnTransformer, fit on the training split only:** numeric columns get median imputation then StandardScaler; sex and embarked get most-frequent imputation then one-hot encoding. The pipeline imputes missing values itself because Part B reads the raw CSV.
+- **Train 712 rows, test 179 rows.**
+
+### Classifier comparison (test set)
+| Model | Accuracy | Precision | Recall | F1 | AUC |
+|---|---|---|---|---|---|
+| Logistic Regression | 0.8045 | 0.7931 | 0.6667 | 0.7244 | 0.8437 |
+| Decision Tree (max_depth=4) | 0.7933 | 0.8636 | 0.5507 | 0.6726 | 0.8292 |
+| Random Forest (200 trees) | 0.8156 | 0.8000 | 0.6957 | 0.7442 | 0.8300 |
+
+Confusion matrices as [[TN, FP], [FN, TP]]: Logistic Regression [[98, 12], [23, 46]]; Decision Tree [[104, 6], [31, 38]]; Random Forest [[98, 12], [21, 48]]. Plots: `charts/confusion_matrices.png`, `charts/roc_curves.png`, and the labelled tree in `charts/decision_tree.png`.
+
+### Imbalance handling (Logistic Regression, train counts 439 died / 273 survived)
+| Variant | Precision | Recall | F1 |
+|---|---|---|---|
+| Baseline | 0.7931 | 0.6667 | 0.7244 |
+| class_weight='balanced' | 0.7297 | 0.7826 | 0.7552 |
+| SMOTE (training data only, inside the pipeline) | 0.7397 | 0.7826 | 0.7606 |
+
+Both fixes raised recall by about 11.6 points at a cost of roughly 5 points of precision, so F1 improved by 3-4 points. SMOTE finished slightly ahead (0.7606 vs 0.7552), but that gap is about one prediction on 179 test rows, so the two are effectively tied. The imbalance is mild (38/62), which is why the gains are modest.
+
+### Hyperparameter tuning (Random Forest, oob_score=True)
+GridSearchCV, 5-fold, scoring F1, over n_estimators [100, 200, 300], max_depth [3, 5, 7, None] and max_features ['sqrt', 'log2', 0.5].
+- Best parameters: max_depth=3, max_features=0.5, n_estimators=100.
+- Best cross-validated F1: 0.7469. OOB score of the best model: 0.823.
+- Tuned model on the test set: accuracy 0.8045, precision 0.8036, recall 0.6522, F1 0.72, AUC 0.8375.
+
+The tuned forest did not beat the default forest on the test set (F1 0.72 vs 0.7442). Tuning optimised cross-validated F1 on the training data, and 179 test rows is a small sample. The OOB score is an accuracy estimate on training rows left out of each tree and is not directly comparable to test accuracy.
+
+### Regression side-task: predict fare
+Predictors: pclass, age, sibsp, parch, sex, embarked (survived excluded because it is an outcome known only after the voyage). Linear regression, same train-only preprocessing.
+
+| MAE | RMSE | R2 | Adjusted R2 |
+|---|---|---|---|
+| 20.8094 | 30.4731 | 0.3999 | 0.3679 |
+
+**Heteroscedasticity: yes.** The Spearman correlation between the absolute residual and the predicted fare is 0.573 (p < 0.001), and the residual plot (`charts/regression_residuals.png`) fans out as predicted fare grows. This is expected because fare is strongly right-skewed. A log-transformed target would likely reduce it; I did not refit.
+
+### Model comparison (two separate metric groups, not on a shared scale)
+Classification (test set):
+
+| Model | Accuracy | Precision | Recall | F1 | AUC |
+|---|---|---|---|---|---|
+| Logistic Regression | 0.8045 | 0.7931 | 0.6667 | 0.7244 | 0.8437 |
+| Decision Tree | 0.7933 | 0.8636 | 0.5507 | 0.6726 | 0.8292 |
+| Random Forest | 0.8156 | 0.8000 | 0.6957 | 0.7442 | 0.8300 |
+
+Regression (fare, test set):
+
+| Model | MAE | RMSE | R2 | Adjusted R2 |
+|---|---|---|---|---|
+| Linear Regression | 20.8094 | 30.4731 | 0.3999 | 0.3679 |
+
+### Recommendation
+I would deploy the Random Forest. It has the best accuracy (0.8156), recall (0.6957) and F1 (0.7442) of the three classifiers, and recall matters here because we want to find as many survivors as possible. The Decision Tree has the highest precision (0.8636) but misses 31 of the 69 survivors (recall 0.5507). Logistic Regression has the best AUC (0.8437) and is the better choice if ranking quality matters more than the 0.5 cut-off. Tuning did not improve the forest on held-out data. The differences are small and come from a single 179-row test split, so they should be confirmed with cross-validation before production use.
+
+### Saved pipeline
+`best_pipeline.joblib` holds the complete fitted pipeline (imputers, encoder, scaler and the Random Forest) as one object, saved with `joblib.dump`. `04_save_pipeline.py` regenerates it, reloads it with `joblib.load` and predicts on raw, unpreprocessed rows, including a row with missing age and embarked.
