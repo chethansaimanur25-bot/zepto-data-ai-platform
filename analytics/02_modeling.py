@@ -105,3 +105,41 @@ plt.title("Decision tree (max_depth=4)")
 plt.tight_layout()
 plt.savefig("analytics/charts/decision_tree.png")
 plt.close()
+
+# ---- Task 9: imbalance handling comparison (Logistic Regression) ----
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.over_sampling import SMOTE
+
+print()
+print("=== IMBALANCE HANDLING (Logistic Regression) ===")
+print("train class counts:", y_train.value_counts().to_dict())
+
+variants = {
+    "baseline": Pipeline([
+        ("prep", make_preprocessor()),
+        ("model", LogisticRegression(max_iter=1000, random_state=42))]),
+    "class_weight=balanced": Pipeline([
+        ("prep", make_preprocessor()),
+        ("model", LogisticRegression(max_iter=1000, class_weight="balanced",
+                                     random_state=42))]),
+    # SMOTE sits inside the pipeline, so it only ever resamples the training data
+    "SMOTE (train only)": ImbPipeline([
+        ("prep", make_preprocessor()),
+        ("smote", SMOTE(random_state=42)),
+        ("model", LogisticRegression(max_iter=1000, random_state=42))]),
+}
+
+imb_rows = []
+for name, pipe in variants.items():
+    pipe.fit(X_train, y_train)
+    pred = pipe.predict(X_test)
+    imb_rows.append({
+        "variant": name,
+        "precision": precision_score(y_test, pred),
+        "recall": recall_score(y_test, pred),
+        "f1": f1_score(y_test, pred),
+    })
+
+imb_table = pd.DataFrame(imb_rows).round(4)
+imb_table.to_csv("analytics/imbalance_comparison.csv", index=False)
+print(imb_table.to_string(index=False))

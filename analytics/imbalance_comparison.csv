@@ -1,0 +1,4 @@
+variant,precision,recall,f1
+baseline,0.7931,0.6667,0.7244
+class_weight=balanced,0.7297,0.7826,0.7552
+SMOTE (train only),0.7397,0.7826,0.7606
