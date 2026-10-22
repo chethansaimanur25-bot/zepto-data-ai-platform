@@ -1,9 +1,11 @@
 import os
+
 import chromadb
 from sentence_transformers import SentenceTransformer
 
-DOCS_DIR = "support_assistant/docs"
-DB_DIR = "support_assistant/chroma_db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DOCS_DIR = os.path.join(BASE_DIR, "docs")
+DB_DIR = os.path.join(BASE_DIR, "chroma_db")
 COLLECTION = "zepto_policies"
 MODEL_NAME = "all-MiniLM-L6-v2"
 
@@ -60,15 +62,7 @@ def retrieve(query, k=3):
     ]
 
 
-
 if __name__ == "__main__":
     col = ingest(force=True)
     print("collection:", COLLECTION, "| chunks stored:", col.count())
-
-
-    DOCS_DIR = "support_assistant/docs"
-    DB_DIR = "support_assistant/chroma_db"
-
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    DOCS_DIR = os.path.join(BASE_DIR, "docs")
-    DB_DIR = os.path.join(BASE_DIR, "chroma_db")
+    
