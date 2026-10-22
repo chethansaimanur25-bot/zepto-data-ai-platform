@@ -51,3 +51,13 @@ python analytics/04_save_pipeline.py  # save + reload the full pipeline
 ```
 
 Design decisions and all written interpretations are in `analytics/README.md`.
+
+
+## Module 3: support_assistant
+
+```
+uvicorn main:app --app-dir support_assistant --port 8000
+```
+
+Offline by default (`MOCK_LLM` unset). Architecture, example calls and Docker instructions are in `support_assistant/README.md`.
+

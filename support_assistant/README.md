@@ -62,6 +62,8 @@ docker run -p 7860:7860 zepto-support
 ```
 Then POST to http://localhost:7860/ask. The image builds the ChromaDB index and caches the embedding model at build time and runs with `MOCK_LLM=1`.
 
+Docker is not installed on the author's laptop. The image build and a container `/ask` call are verified by the GitHub Actions workflow `.github/workflows/docker-build.yml` (see the Actions tab: runs #4 and #5 are green).
+
 ## Known limitations
 - The keyword router is specified by the brief and is deliberately simple. A policy question that contains none of the keywords (for example "Is there phone support?" or "What does Zepto Pass+ cost?") is routed to `direct_answer` in mock mode, even though retrieval would find the right document.
 - Mock answers are a 200-character excerpt of the top chunk, so they can end mid-sentence.
