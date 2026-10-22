@@ -1,0 +1,27 @@
+name: docker-build
+
+on:
+  push:
+    paths:
+      - "support_assistant/**"
+      - ".github/workflows/docker-build.yml"
+  workflow_dispatch:
+
+jobs:
+  build-and-run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t zepto-support support_assistant
+
+      - name: Run container and call /ask
+        run: |
+          docker run -d -p 7860:7860 --name zs zepto-support
+          for i in $(seq 1 40); do curl -sf http://localhost:7860/health && break || sleep 3; done
+          curl -sf -X POST http://localhost:7860/ask -H "Content-Type: application/json" -d '{"query": "What are your delivery charges?"}'
+          echo
+          curl -sf -X POST http://localhost:7860/ask -H "Content-Type: application/json" -d '{"query": "What is the capital of France?"}'
+          echo
+          docker logs zs
